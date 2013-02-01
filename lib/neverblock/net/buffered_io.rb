@@ -3,20 +3,18 @@
 
 module Net
   class BufferedIO
-
     def rbuf_fill
-      timeout (@read_timeout) {
-        begin
-          @rbuf << @io.read_nonblock(BUFSIZE)
-        rescue IO::WaitReadable, Errno::EAGAIN, Errno::EWOULDBLOCK, Errno::EINTR => e
-          NB.wait(:read, @io)
-          retry
-        rescue IO::WaitWritable => e
-          NB.wait(:write, @io)
-          retry
-        end
-      }
+      @rbuf << @io.read_nonblock(BUFSIZE)
+    rescue IO::WaitReadable, Errno::EAGAIN, Errno::EWOULDBLOCK, Errno::EINTR => e
+      Timeout.timeout(@read_timeout, Net::ReadTimeout) do
+        NB.wait(:read, @io)
+      end
+      retry # Can't have retry inside of the block due to 'Invalid retry (SyntaxError)'
+    rescue IO::WaitWritable => e
+      Timeout.timeout(@read_timeout, Net::ReadTimeout) do
+        NB.wait(:write, @io)
+      end
+      retry # Can't have retry inside of the block due to 'Invalid retry (SyntaxError)'
     end
-    
   end 
 end

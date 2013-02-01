@@ -63,6 +63,9 @@ module NeverBlock
             end
           end
         end
+
+        fiber[:nb_fiber_pool_idx] = i
+
         @fibers << fiber
         @pool << fiber
       end

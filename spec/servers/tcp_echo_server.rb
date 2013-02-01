@@ -24,7 +24,7 @@ end
 
 EventMachine::run {
   
-  EventMachine::start_server "localhost", 8080, EchoServer
+  EventMachine::start_server "0.0.0.0", 8080, EchoServer
   
 #  EM.add_timer(1) { EM.stop }
 
