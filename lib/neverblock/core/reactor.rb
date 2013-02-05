@@ -109,4 +109,10 @@ module NeverBlock
     NB::Fiber.yield
   end
 
+  def self.yield
+    fiber = NB::Fiber.current
+    EM.many_ticks { fiber.resume }
+    NB::Fiber.yield
+  end
+
 end
