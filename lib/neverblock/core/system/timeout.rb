@@ -62,6 +62,8 @@ module Timeout
       # this one must be lingering garbage that should have been cleaned up already.
       # lingering garbage timers added after us that should have been cleaned up already...
       if idx = timeouts.index(timer)
+        # Note: that I can't think of a case when it would be possible to have
+        # nested timeouts but I guess we can keep the code around just in case.
         timers_to_cancel = timeouts.slice!(idx..timeouts.size-1)
         timers_to_cancel.each {|t| EM.cancel_timer(t)}
 
