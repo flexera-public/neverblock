@@ -37,6 +37,7 @@ module Timeout
           fiber[:io] = nil
           handler.remove_waiter(fiber) if handler
           fiber.resume(Timeout::Error.new)
+          fiber.resume(klass.new)
         end
       }
     }
