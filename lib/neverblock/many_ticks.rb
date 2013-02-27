@@ -5,11 +5,14 @@ def EM.many_ticks &blk
     @tick_queue_running = true
 
     pop = proc{
-      @tick_queue.shift.call
-      if @tick_queue.any?
-        EM.next_tick pop
-      else
-        @tick_queue_running = false
+      begin
+        @tick_queue.shift.call
+      ensure
+        if @tick_queue.any?
+          EM.next_tick pop
+        else
+          @tick_queue_running = false
+        end
       end
     }
 
