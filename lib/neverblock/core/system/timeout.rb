@@ -36,7 +36,11 @@ module Timeout
           handler = fiber[:io]
           fiber[:io] = nil
           handler.remove_waiter(fiber) if handler
-          fiber.resume(Timeout::Error.new)
+
+          sleep_timer = fiber[:sleep_timer]
+          fiber[:sleep_timer] = nil
+          EM.cancel_timer(sleep_timer) if sleep_timer
+
           fiber.resume(klass.new)
         end
       }
