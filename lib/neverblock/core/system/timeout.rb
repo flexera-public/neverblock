@@ -55,15 +55,16 @@ module Timeout
       # NOTE: this has *nothing* to do with the time of the timeouts. It is purely
       # the order-of-creation we are concerned with. Any timeouts created after
       # this one must be lingering garbage that should have been cleaned up already.
-
       # lingering garbage timers added after us that should have been cleaned up already...
-      idx = timeouts.index(timer)
-      timers_to_cancel = timeouts.slice!(idx..timeouts.size-1)
-      timers_to_cancel.each {|t| EM.cancel_timer(t) }
+      if idx = timeouts.index(timer)
+        timers_to_cancel = timeouts.slice!(idx..timeouts.size-1)
+        timers_to_cancel.each {|t| EM.cancel_timer(t)}
 
-      # cleanup after ourselves
-      timeouts.delete(timer)
-      EM.cancel_timer(timer)
+        # cleanup after ourselves
+        timeouts.delete(timer)
+
+        EM.cancel_timer(timer)
+      end
     end
 
     ret
