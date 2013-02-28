@@ -121,7 +121,15 @@ module NeverBlock
 
   def self.yield
     fiber = NB::Fiber.current
-    EM.many_ticks { fiber.resume }
+    EM.many_ticks do
+      # if f[:yield] is nil, it means it was cleared by a timeout - dont resume!
+      if fiber[:yield]
+        # make sure to set f[:io] to nil BEFORE resuming. if we set it after,
+        # we'll clear any new value that was set during fiber.resume
+        fiber[:yield] = nil
+        fiber.resume
+      end
+    end
     NB::Fiber.yield
   end
 
