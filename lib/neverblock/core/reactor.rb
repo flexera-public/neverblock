@@ -105,7 +105,17 @@ module NeverBlock
     NB::Fiber.yield if time.nil?
     return if time <= 0 
     fiber = NB::Fiber.current
-    fiber[:sleep_timer] = NB.reactor.add_timer(time){fiber.resume}
+    fiber[:sleep_timer] = NB.reactor.add_timer(time) do
+      # if f[:sleep_timer] is nil, it means it was cleared by a timeout - dont resume!
+      # although since the timer should have been canceled by the timeout timer, we
+      # should really never get into this situation.
+      if fiber[:sleep_timer]
+        # make sure to set f[:sleep_timer] to nil BEFORE resuming. if we set it after,
+        # we'll clear any new value that was set during fiber.resume
+        fiber[:sleep_timer] = nil
+        fiber.resume
+      end
+    end
     NB::Fiber.yield
   end
 
