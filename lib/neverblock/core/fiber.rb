@@ -34,6 +34,10 @@ class NeverBlock::Fiber < Fiber
     result
   end
 
+  def register(type, object=nil)
+    local_fiber_variables[:outstanding_timers].register(type, object)
+  end
+
   private
   
   def local_fiber_variables

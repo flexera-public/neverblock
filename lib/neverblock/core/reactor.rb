@@ -13,29 +13,27 @@ module NeverBlock
     def add_writer(fiber)
       fiber[:io] = self
       self.notify_writable = true
-      @writers << fiber
+
+      @writers << NB.register_with_timeout_handler(:io_writer, fiber)
     end
 
     def add_reader(fiber)
       fiber[:io] = self
       self.notify_readable = true
-      @readers << fiber
+
+      @readers << NB.register_with_timeout_handler(:io_reader, fiber)
     end
 
     def remove_waiter(fiber)
-      @readers.delete(fiber)
-      @writers.delete(fiber)
+      @readers.delete_if{|reader| reader[:fiber] == fiber}
+      @writers.delete_if{|writer| writer[:fiber] == fiber}
     end
 
     def notify_readable
-      if f = @readers.shift
-        # if f[:io] is nil, it means it was cleared by a timeout - dont resume!
-        # make sure to set f[:io] to nil BEFORE resuming. if we set it after,
-        # we'll clear any new value that was set during fiber.resume
+      if reader = @readers.shift
         EM.many_ticks {
-          if f[:io]
-            f[:io] = nil
-            f.resume
+          NB.deregister_timeout_handler(:io_reader, writer[:timeout_handler]) do
+            reader[:fiber].resume
           end
         }
       else
@@ -45,11 +43,10 @@ module NeverBlock
     end
 
     def notify_writable
-      if f = @writers.shift
+      if writer = @writers.shift
         EM.many_ticks {
-          if f[:io]
-            f[:io] = nil
-            f.resume
+          NB.deregister_timeout_handler(:io_writer, writer[:timeout_handler]) do
+            writer[:fiber].resume
           end
         }
       else
@@ -105,32 +102,53 @@ module NeverBlock
     NB::Fiber.yield if time.nil?
     return if time <= 0 
     fiber = NB::Fiber.current
-    fiber[:sleep_timer] = NB.reactor.add_timer(time) do
-      # if f[:sleep_timer] is nil, it means it was cleared by a timeout - dont resume!
-      # although since the timer should have been canceled by the timeout timer, we
-      # should really never get into this situation.
-      if fiber[:sleep_timer]
-        # make sure to set f[:sleep_timer] to nil BEFORE resuming. if we set it after,
-        # we'll clear any new value that was set during fiber.resume
-        fiber[:sleep_timer] = nil
+
+    timeout_handler = fiber[:timeouts] && fiber[:timeouts].last
+    timer = NB.reactor.add_timer(time) do
+      deregister_timeout_handler(:sleep_timer, timeout_handler) do
+        fiber.resume
+      end
+    end
+
+    if timeout_handler
+      timeout_handler.register(:sleep_timer, timer)
+    end
+
+    NB::Fiber.yield
+  end
+
+  def self.yield
+    fiber = NB::Fiber.current
+    timeout_handler = register_with_timeout_handler(:yield, fiber)[:timeout_handler]
+    EM.many_ticks do
+      deregister_timeout_handler(:yield, timeout_handler) do
         fiber.resume
       end
     end
     NB::Fiber.yield
   end
 
-  def self.yield
-    fiber = NB::Fiber.current
-    EM.many_ticks do
-      # if f[:yield] is nil, it means it was cleared by a timeout - dont resume!
-      if fiber[:yield]
-        # make sure to set f[:io] to nil BEFORE resuming. if we set it after,
-        # we'll clear any new value that was set during fiber.resume
-        fiber[:yield] = nil
-        fiber.resume
+  def self.deregister_timeout_handler(type, timeout_handler, &block)
+    if timeout_handler
+      timeout_handler.deregister(type)
+      if timeout_handler.active?
+        block.call
       end
+    else
+      block.call
     end
-    NB::Fiber.yield
+  end
+
+  def self.register_with_timeout_handler(type, fiber, call_to_register = nil)
+    assignment = {:fiber => fiber}
+
+    if timeout_handler = fiber[:timeouts] && fiber[:timeouts].last
+      timeout_handler.register(type, call_to_register)
+
+      assignment[:timeout_handler] = timeout_handler
+    end
+
+    assignment
   end
 
 end

@@ -2,6 +2,65 @@ require 'timeout'
 
 module Timeout
 
+  class TimeoutHandler
+    attr_reader :timeout_timer
+    attr_reader :registered_calls
+    attr_reader :fiber
+
+    def initialize(timeout_timer, fiber)
+      @timeout_timer    = timeout_timer
+      @fiber            = fiber
+      @registered_calls = []
+      @status = :active
+    end
+
+    def active?
+      @status == :active
+    end
+
+    def register(type, call_to_register=nil)
+      @registered_calls << [type, call_to_register]
+    end
+
+    def deregister(type)
+      @registered_calls.delete_if{|registered_call_type, registered_call| registered_call_type == type}
+    end
+
+    def cancel
+      cancel_timer
+      cancel_registered_calls
+    end
+
+    def cancel_timer
+      @status = :canceled
+      EM.cancel_timer(@timeout_timer)
+    end
+
+    def cancel_registered_calls
+      @status = :canceled
+      while registered_call = @registered_calls.shift
+        type, registered_call = registered_call
+
+        case type
+        when :io_reader, :io_writer
+          registered_call.remove_waiter(@fiber)
+        when :sleep_timer
+          EM.cancel_timer(registered_call)
+        end
+      end
+    end
+
+    def self.cancel_nested_timeout_handlers(timeout_handlers, current_timeout_handler, &block)
+      # If the current_timeout_handler is still active, then cancel the nested timeout_handlers
+      if (idx = timeout_handlers.index(current_timeout_handler))
+        timeout_handlers_to_cancel = timeout_handlers.slice!(idx..timeout_handlers.size-1)
+        timeout_handlers_to_cancel.each {|t| t.cancel }
+
+        block.call
+      end
+    end
+  end
+
   alias_method :rb_timeout, :timeout
 
   def timeout(time, klass=Timeout::Error, &block)
@@ -12,7 +71,8 @@ module Timeout
     end
 
     fiber = NB::Fiber.current
-    timeouts = (fiber[:timeouts] ||= [])
+    timeout_handlers = (fiber[:timeouts] ||= [])
+    timeout_handler = nil
 
     timer = EM.add_timer(time) {
       # Because IO handling is scheduled using EM.many_ticks, we need
@@ -29,24 +89,15 @@ module Timeout
         # if we don't find our timer in the list of timeouts on the fiber
         # it means the operation must already have completed succesfully,
         # in other words: this is not the timeout you're looking for.
-        if (idx = timeouts.index(timer))
-          timers_to_cancel = timeouts.slice!(idx..timeouts.size-1)
-          timers_to_cancel.each {|t| EM.cancel_timer(t) }
-          # remove fiber[:io] - this indicates to the many_ticks block not to resume!
-          handler = fiber[:io]
-          fiber[:io] = nil
-          handler.remove_waiter(fiber) if handler
-
-          sleep_timer = fiber[:sleep_timer]
-          fiber[:sleep_timer] = nil
-          EM.cancel_timer(sleep_timer) if sleep_timer
-
+        TimeoutHandler.cancel_nested_timeout_handlers(timeout_handlers, timeout_handler) do
+          timeout_handler.cancel
           fiber.resume(klass.new)
         end
       }
     }
 
-    timeouts << timer
+    timeout_handler = TimeoutHandler.new(timer, fiber)
+    timeout_handlers << timeout_handler
 
     ret = nil
 
@@ -61,16 +112,13 @@ module Timeout
       # the order-of-creation we are concerned with. Any timeouts created after
       # this one must be lingering garbage that should have been cleaned up already.
       # lingering garbage timers added after us that should have been cleaned up already...
-      if idx = timeouts.index(timer)
-        # Note: that I can't think of a case when it would be possible to have
-        # nested timeouts but I guess we can keep the code around just in case.
-        timers_to_cancel = timeouts.slice!(idx..timeouts.size-1)
-        timers_to_cancel.each {|t| EM.cancel_timer(t)}
-
+      #
+      # Note: that I can't think of a case when it would be possible to have
+      # nested timeouts but I guess we can keep the code around just in case.
+      TimeoutHandler.cancel_nested_timeout_handlers(timeout_handlers, timeout_handler) do
         # cleanup after ourselves
-        timeouts.delete(timer)
-
-        EM.cancel_timer(timer)
+        timeout_handlers.delete(timer)
+        timeout_handler.cancel
       end
     end
 
