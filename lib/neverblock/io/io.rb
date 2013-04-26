@@ -128,6 +128,7 @@ class IO
     written = 0
     begin
       old_flags = get_flags      
+      data = data.to_s unless data.is_a?(String)
       written = written + write_nonblock(data[written,data.length])
       set_flags(old_flags)
       raise Errno::EAGAIN if written < data.length
