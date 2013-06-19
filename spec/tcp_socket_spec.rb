@@ -91,6 +91,22 @@ describe TCPSocket, " with NeverBlock" do
   end
 
   context "with a timeout" do
+    context "and timeout == 0" do
+      it "should ignore the timeout" do
+        EM.spec {
+          fiber_aid do
+            lambda do
+              @socket.read(2) # read 'hi' which gets posted by the echo server on startup
+              Timeout.timeout(0) do
+                @socket.read(2) # read more but now there is nothing to read... so it should timeout
+              end
+            end.should_not raise_error(Timeout::Error)
+          end
+
+          EM.add_timer(0.1){@socket.write("oo")}
+        }
+      end
+    end
     context "and timeout expires and there is nothing read" do
       it "should raise a TimeoutError" do
         EM.spec {

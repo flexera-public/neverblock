@@ -64,7 +64,7 @@ module NeverBlock
           end
         end
 
-        fiber[:nb_fiber_pool_idx] = i
+        fiber[:nb_fiber_pool_idx] = i + 1 #starting the index with 1
 
         @fibers << fiber
         @pool << fiber

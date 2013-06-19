@@ -31,7 +31,7 @@ describe NB::EMHandler do
         @error_class = Timeout::Error
         @fiber[:nb_timeout] = NB::NbTimeout.new(1, @error_class)
 
-        EventMachine::DefaultDeferrable.any_instance.should_receive(:timeout).once
+        NB::WatchDeferrable.any_instance.should_receive(:timeout).once
       end
       it "should resume with the timeout class" do
         @fiber.should_receive(:resume).once.with(an_instance_of(@error_class))
