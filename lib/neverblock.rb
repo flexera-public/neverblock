@@ -1,8 +1,16 @@
 # Author::    Mohammad A. Ali  (mailto:oldmoe@gmail.com)
 # Copyright:: Copyright (c) 2008 eSpace, Inc.
 # License::   Distributes under the same terms as Ruby
-
 module NeverBlock
+  require 'logger'
+
+  def self.logger=(logger)
+    @logger = logger
+  end
+
+  def self.logger
+    @logger ||= Logger.new(STDOUT)
+  end
 
   # Checks if we should be working in a non-blocking mode
   def self.neverblocking?
@@ -29,6 +37,10 @@ NB = NeverBlock
 require_relative 'neverblock/core/reactor'
 require_relative 'neverblock/core/fiber'
 require_relative 'neverblock/core/pool'
+
+require_relative 'neverblock/core/nb_timeout'
+require_relative 'neverblock/core/em_handler'
+require_relative 'neverblock/core/watch_deferrable'
 
 require_relative 'neverblock/core/system/system'
 require_relative 'neverblock/core/system/timeout'
