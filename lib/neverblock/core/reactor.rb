@@ -28,8 +28,9 @@ module NeverBlock
     NB::Fiber.yield
   end
 
-  def self.remove_handler(fd)
-    if handler = @@handlers.delete(fd)
+  def self.remove_handler(handler)
+    if @@handlers[handler.fd] == handler
+      @@handlers.delete(handler.fd)
       handler.detach
     end
   end

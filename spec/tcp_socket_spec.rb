@@ -224,6 +224,32 @@ describe TCPSocket, " with NeverBlock" do
     end
   end
 
+  context "with a Fiber retrying before the unbind for the same fd gets triggered" do
+    it "should have a handler available" do
+      EM.spec {
+        @socket.read(2)
+
+        EM.add_timer(0.5) do
+          NB.send(:class_variable_get, :@@handlers).size.should == 1
+          @socket.write(":)")
+        end
+
+        NB::Fiber.new do
+          begin
+            Timeout.timeout(0.1) do
+              @socket.read(2)
+            end
+          rescue => e
+          end
+
+          #Try again to read
+          @socket.read(2)
+
+          EM.stop
+        end.resume
+      }
+    end
+  end
 
   after(:all) do
     @server.stop

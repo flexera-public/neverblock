@@ -4,6 +4,8 @@ require 'thread'
 module NeverBlock
 
   module EMHandler
+    attr_reader :fd
+
     def initialize(fd)
       @fd = fd
       @readers = []
@@ -88,12 +90,12 @@ module NeverBlock
     # If the underlying descriptor is deleted before we got a chance
     # to detach then force removal. Called by EM (socket closes).
     def unbind
-      NB.remove_handler(@fd)
+      NB.remove_handler(self)
     end
 
     # Called by NB
     def detach_if_done
-      NB.remove_handler(@fd) if @readers.empty? && @writers.empty?
+      NB.remove_handler(self) if @readers.empty? && @writers.empty?
     end
 
   end
