@@ -26,3 +26,7 @@ def EM.many_ticks &blk
     EM.next_tick pop
   end
 end
+
+def EM.many_ticks_queue_size
+  (@tick_queue || []).size
+end

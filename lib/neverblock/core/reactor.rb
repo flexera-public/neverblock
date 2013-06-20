@@ -57,4 +57,10 @@ module NeverBlock
 
     NB::Fiber.yield
   end
+
+  def self.stats
+    {
+      :handlers   => @@handlers.size
+    }
+  end
 end
