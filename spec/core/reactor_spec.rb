@@ -79,7 +79,7 @@ describe NeverBlock do
     context "with a timeout" do
       it "should ignore the timeout and log a warning" do
         EM.run do
-          NB.logger.should_receive(:warn).once
+          NB.logger.should_receive(:warn).twice
 
           NB::Fiber.new do
             Timeout.timeout(0.01) { sleep(0.1) }
@@ -105,7 +105,7 @@ describe NeverBlock do
     context "with a timeout" do
       it "should ignore the timeout and log a warning" do
         EM.run do
-          NB.logger.should_receive(:warn).once
+          NB.logger.should_receive(:warn).twice
 
           fiber = NB::Fiber.new do
             Timeout.timeout(0.01) do

@@ -26,6 +26,16 @@ module NeverBlock
     NB::Fiber.current[:neverblock] = status
   end
 
+  def self.track_timeout_caller(timeout_caller=:undefined)
+    fiber = NB::Fiber.current
+    previous_timeout_caller = fiber[:nb_timeout_caller]
+    fiber[:nb_timeout_caller] = timeout_caller
+
+    yield
+  ensure
+    fiber[:nb_timeout_caller] = previous_timeout_caller
+  end
+
   # Exception to be thrown for all neverblock internal errors
   class NBError < StandardError
   end

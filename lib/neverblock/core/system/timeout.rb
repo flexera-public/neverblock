@@ -7,6 +7,14 @@ module Timeout
   def timeout(time, error_class=Timeout::Error, &block)
     return rb_timeout(time, error_class, &block) unless NB.neverblocking?
 
+    NB.logger.warn("NB> Unexpected timeout method call. Timeout will be ignored for caller: #{caller.join("\n")}") if !NB::Fiber.current[:nb_timeout_caller]
+
+    set_nb_timeout(time, error_class, &block)
+  end
+
+  def set_nb_timeout(time, error_class=Timeout::Error, &block)
+    return rb_timeout(time, error_class, &block) unless NB.neverblocking?
+
     fiber = NB::Fiber.current
     previous_timeout = fiber[:nb_timeout]
     NB.logger.warn("NB> Nested timeout detected with parent timeout=#{previous_timeout.inspect}, child timeout=#{[time, error_class].inspect}. Backtrace: #{caller.join("\n")}") if previous_timeout
@@ -24,5 +32,6 @@ module Timeout
 
   module_function :timeout
   module_function :rb_timeout
+  module_function :set_nb_timeout
 
 end
