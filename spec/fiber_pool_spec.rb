@@ -25,24 +25,29 @@ describe NeverBlock::FiberPool do
     fibers = []
     @fiber_pool.fibers.each {|f| fibers << f}
     10.times do |i|
+      # make all fibers busy
       @fiber_pool.spawn {Fiber.yield; progress[i] = true}
     end
     @fiber_pool.fibers.length.should == 0
     @fiber_pool.instance_variable_get(:@queue).length.should == 0
 
     #it should now queue
-     (10..14).each {|i| @fiber_pool.spawn {progress[i] = true}}
+    @fiber_pool.spawn {progress[10] = true}
     @fiber_pool.fibers.length.should == 0
-    @fiber_pool.instance_variable_get(:@queue).length.should == 5
+    @fiber_pool.instance_variable_get(:@queue).length.should == 1
 
     #resume the first fiber, this should also process the queued requests
     fibers[0].resume
-    @fiber_pool.fibers.length.should == 1
+    @fiber_pool.fibers.length.should == 0 # because there was more work and the fiber picked it up
     @fiber_pool.instance_variable_get(:@queue).length.should == 0
-    [0,*10..14].each {|i| progress[i].should == true}
-     (1..9).to_a.each {|i| progress[i].should == false}
+
+    fibers[0].resume
+    @fiber_pool.fibers.length.should == 1 # because there was no more work
+    [0, 10].each {|i| progress[i].should == true}
+    (1..9).to_a.each {|i| progress[i].should == false}
+
     fibers_count = 1
-     (1..9).to_a.each do |i|
+    (1..9).to_a.each do |i|
       fibers[i].resume
       fibers_count = fibers_count + 1
       progress[i].should == true

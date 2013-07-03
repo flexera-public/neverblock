@@ -11,10 +11,10 @@ class OpenSSL::SSL::SSLSocket
   def connect
     begin
       connect_nonblock
-    rescue IO::WaitReadable => e
+    rescue IO::WaitReadable
       NB.wait(:read, self)
       retry
-    rescue IO::WaitWritable => e
+    rescue IO::WaitWritable
       NB.wait(:write, self)
       retry
     end
@@ -91,7 +91,7 @@ class IO
       self.buffer = ''
       remaining_length = length - sbuffer.length
       while sbuffer.length < length && remaining_length > 0 
-        begin 
+        begin
           sbuffer << sysread(NB_BUFFER_LENGTH < remaining_length ? remaining_length : NB_BUFFER_LENGTH)
           remaining_length = remaining_length - sbuffer.length   
         rescue EOFError
