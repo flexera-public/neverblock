@@ -2,8 +2,8 @@ require 'rake'
 
 Gem::Specification.new do |s|
   s.name     = "neverblock"
-  s.version  = "1.1"
-  s.date     = "2013-06-17"
+  s.version  = "2.0"
+  s.date     = "2013-07-03"
   s.summary  = "Utilities for non-blocking stack components"
   s.email    = "support@rightscale.com"
   s.homepage = "http://github.com/rightscale/neverblock"
