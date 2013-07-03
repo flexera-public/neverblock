@@ -1,6 +1,10 @@
 require_relative "../lib/neverblock"
 
-EM.error_handler {|e| $stderr.puts(e.message); $stderr.puts(e.backtrace.join("\n")) }
+EM.error_handler do |e|
+  raise e
+end
+
+NB.logger = Logger.new("/dev/null")
 
 class TestServer
 

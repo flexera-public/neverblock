@@ -52,6 +52,9 @@ module NeverBlock
             end
             unless @queue.empty?
               block = @queue.shift
+
+              # If there are any other fibers working besides me, give them a chance to finish their work.
+              NB.yield if @busy_fibers.size > 1
             else
               @busy_fibers.delete(NB::Fiber.current.object_id)
               @fibers << NB::Fiber.current
@@ -60,6 +63,9 @@ module NeverBlock
             end
           end
         end
+
+        fiber[:nb_fiber_pool_idx] = i + 1 #starting the index with 1
+
         @fibers << fiber
         @pool << fiber
       end

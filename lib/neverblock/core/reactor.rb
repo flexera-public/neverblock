@@ -3,73 +3,6 @@ require 'thread'
 
 module NeverBlock
 
-  module EMHandler
-    def initialize(fd)
-      @fd = fd
-      @readers = []
-      @writers = []
-    end
-
-    def add_writer(fiber)
-      fiber[:io] = self
-      self.notify_writable = true
-      @writers << fiber
-    end
-
-    def add_reader(fiber)
-      fiber[:io] = self
-      self.notify_readable = true
-      @readers << fiber
-    end
-
-    def remove_waiter(fiber)
-      @readers.delete(fiber)
-      @writers.delete(fiber)
-    end
-
-    def notify_readable
-      if f = @readers.shift
-        # if f[:io] is nil, it means it was cleared by a timeout - dont resume!
-        # make sure to set f[:io] to nil BEFORE resuming. if we set it after,
-        # we'll clear any new value that was set during fiber.resume
-        EM.many_ticks {
-          if f[:io]
-            f[:io] = nil
-            f.resume
-          end
-        }
-      else
-        self.notify_readable = false
-      end
-      detach_if_done
-    end
-
-    def notify_writable
-      if f = @writers.shift
-        EM.many_ticks {
-          if f[:io]
-            f[:io] = nil
-            f.resume
-          end
-        }
-      else
-        self.notify_writable = false
-      end
-      detach_if_done
-    end
-    
-    # If the underlying descriptor is deleted before we got a chance
-    # to detach then force removal
-    def unbind
-      NB.remove_handler(@fd)
-    end
-
-    def detach_if_done
-      NB.remove_handler(@fd) if @readers.empty? && @writers.empty?
-    end
-
-  end
-
   def self.reactor
     EM
   end
@@ -95,18 +28,39 @@ module NeverBlock
     NB::Fiber.yield
   end
 
-  def self.remove_handler(fd)
-    if handler = @@handlers.delete(fd)
+  def self.remove_handler(handler)
+    if @@handlers[handler.fd] == handler
+      @@handlers.delete(handler.fd)
       handler.detach
     end
   end
 
   def self.sleep(time)
-    NB::Fiber.yield if time.nil?
-    return if time <= 0 
+    return if time.nil? || time <= 0
+
+    NB.logger.warn("NB> NB.sleep called within timeout #{NB::Fiber.current[:nb_timeout].inspect}. Backtrace: #{caller.join("\n")}") if NB::Fiber.current[:nb_timeout]
     fiber = NB::Fiber.current
-    NB.reactor.add_timer(time){fiber.resume}
+    NB.reactor.add_timer(time) do
+      fiber.resume
+    end
+
     NB::Fiber.yield
   end
 
+  def self.yield
+    fiber = NB::Fiber.current
+
+    NB.logger.warn("NB> NB.yield called within timeout #{NB::Fiber.current[:nb_timeout].inspect}. Backtrace: #{caller.join("\n")}") if NB::Fiber.current[:nb_timeout]
+    EM.many_ticks do
+      fiber.resume
+    end
+
+    NB::Fiber.yield
+  end
+
+  def self.stats
+    {
+      :handlers   => @@handlers.size
+    }
+  end
 end
