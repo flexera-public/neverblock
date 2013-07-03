@@ -1,4 +1,4 @@
-require_relative "spec_helper"
+require_relative "../spec_helper"
 
 class MyEMWatch < EM::Connection
   include NB::EMHandler
