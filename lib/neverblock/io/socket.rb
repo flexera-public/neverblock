@@ -71,6 +71,16 @@ class TCPSocket < Socket
   def initialize(*args)
     super(AF_INET, SOCK_STREAM, 0)
     self.connect(Socket.sockaddr_in(*(args.reverse)))
+  rescue Exception => e
+    # NB redefines TCPSocket out of some reason. TCPSocket normally inherits from IPSocket which handles
+    # connection failures and closes any open fd. Since NB is redefining TCPSocket and is not inheriting
+    # from IPSocket, we have to clean up of open fds when catching an exception.
+    begin
+      self.close
+    rescue Exception
+    ensure
+      raise e
+    end
   end
 end
 
