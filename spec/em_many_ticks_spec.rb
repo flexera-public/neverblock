@@ -23,6 +23,8 @@ describe "EM.many_ticks" do
       # EM.many_ticks ticks wont ever get scheduled.
       EM.instance_variable_get(:@tick_queue).should be_empty
       EM.instance_variable_get(:@tick_queue_running).should == false
+      EM.instance_variable_get(:@tick_queue_running).should == false
+      EM.instance_variable_get(:@em_many_ticks_shutdown_hook).should == nil
     end
   end
 end
