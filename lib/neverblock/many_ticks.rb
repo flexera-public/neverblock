@@ -1,14 +1,15 @@
 def EM.many_ticks &blk
   (@tick_queue ||= []) << blk
 
-  unless @tick_queue_running
-    # Clean up otherwise when EM gets restarted, we would never restart the queue and the tick_queue could still
-    # have scheduled ticks from the previous runs.
-    EM.add_shutdown_hook do
-      @tick_queue_running = false
-      @tick_queue = []
-    end
+  # Clean up otherwise when EM gets restarted, we would never restart the queue and the tick_queue could still
+  # have scheduled ticks from the previous runs.
+  @em_many_ticks_shutdown_hook ||= EM.add_shutdown_hook do
+    @tick_queue_running = false
+    @tick_queue = []
+    @em_many_ticks_shutdown_hook = nil
+  end
 
+  unless @tick_queue_running
     @tick_queue_running = true
 
     pop = proc{
