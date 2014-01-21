@@ -70,7 +70,10 @@ Object.send(:remove_const, :TCPSocket)
 class TCPSocket < Socket
   def initialize(*args)
     super(AF_INET, SOCK_STREAM, 0)
-    self.connect(Socket.sockaddr_in(*(args.reverse)))
+    # method 'sockaddr_in' reqiures only two params so that
+    # we have to make sure that we don't pass more than two.
+    # http://www.ruby-doc.org/stdlib-1.9.3/libdoc/socket/rdoc/Socket.html#method-c-sockaddr_in
+    self.connect(Socket.sockaddr_in(*(args[0..1].reverse)))
   rescue Exception => e
     # NB redefines TCPSocket out of some reason. TCPSocket normally inherits from IPSocket which handles
     # connection failures and closes any open fd. Since NB is redefining TCPSocket and is not inheriting
