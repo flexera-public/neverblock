@@ -18,4 +18,6 @@ Gem::Specification.new do |s|
   s.rdoc_options = ["--main", "README"]
   s.extra_rdoc_files = ["README"]
   s.add_dependency('eventmachine', '>= 0.12.10')
+
+  s.add_development_dependency('rspec', '~> 2.14.1')
 end
