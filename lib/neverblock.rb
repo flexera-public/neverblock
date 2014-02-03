@@ -30,6 +30,16 @@ module NeverBlock
   class NBError < StandardError
   end
 
+  # Helper method for Net::BufferedIO#rbuf_fill monkey-patch.
+  # Calls Timeout.timeout, but passes ReadTimeout parameter for Ruby 2.0 and above.
+  def self.timeout_for_rbuf_fill(sec, &block)
+    if RUBY_VERSION > '2.0'
+      Timeout.timeout(sec, Net::ReadTimeout, &block)
+    else
+      Timeout.timeout(sec, &block)
+    end
+  end
+
 end
 
 NB = NeverBlock
