@@ -2,8 +2,8 @@ require 'rake'
 
 Gem::Specification.new do |s|
   s.name     = "neverblock"
-  s.version  = "2.0"
-  s.date     = "2013-07-03"
+  s.version  = "2.1"
+  s.date     = "2014-01-31"
   s.summary  = "Utilities for non-blocking stack components"
   s.email    = "support@rightscale.com"
   s.homepage = "http://github.com/rightscale/neverblock"
@@ -18,4 +18,6 @@ Gem::Specification.new do |s|
   s.rdoc_options = ["--main", "README"]
   s.extra_rdoc_files = ["README"]
   s.add_dependency('eventmachine', '>= 0.12.10')
+
+  s.add_development_dependency('rspec', '~> 2.14.1')
 end
