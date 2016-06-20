@@ -40,30 +40,32 @@ class BasicSocket < IO
 
 end
 
-class Socket < BasicSocket
-  
-  alias_method :connect_blocking, :connect
-      
-  def connect_neverblock(server_sockaddr)
-    begin
-      connect_nonblock(server_sockaddr)
-    rescue Errno::EINPROGRESS, Errno::EINTR, Errno::EALREADY, Errno::EWOULDBLOCK
-      NB.wait(:write, self)
-      retry
-    rescue Errno::EISCONN
-      # do nothing, we are good
-    end
-  end
-    
-  def connect(server_sockaddr)
-    if NB.neverblocking?
-      connect_neverblock(server_sockaddr)
-    else
-      connect_blocking(server_sockaddr)
-    end
-  end
 
-end
+# Commenting out connect neverblocking.  This can cause SSL errors
+# class Socket < BasicSocket
+  
+#   alias_method :connect_blocking, :connect
+      
+#   def connect_neverblock(server_sockaddr)
+#     begin
+#       connect_nonblock(server_sockaddr)
+#     rescue Errno::EINPROGRESS, Errno::EINTR, Errno::EALREADY, Errno::EWOULDBLOCK
+#       NB.wait(:write, self)
+#       retry
+#     rescue Errno::EISCONN
+#       # do nothing, we are good
+#     end
+#   end
+    
+#   def connect(server_sockaddr)
+#     if NB.neverblocking?
+#       connect_neverblock(server_sockaddr)
+#     else
+#       connect_blocking(server_sockaddr)
+#     end
+#   end
+
+# end
 
 Object.send(:remove_const, :TCPSocket)
 
