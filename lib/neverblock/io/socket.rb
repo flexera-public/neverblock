@@ -63,7 +63,7 @@ class Socket < BasicSocket
 #     else
     connect_blocking(server_sockaddr)
 #     end
-#   end
+  end
 
 end
 
