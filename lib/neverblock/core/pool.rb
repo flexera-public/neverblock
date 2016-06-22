@@ -84,10 +84,12 @@ module NeverBlock
     # in a queue
     def spawn(evented = true, &block)
       if fiber = @fibers.shift
+        NB.logger.error "DJR DJR NB spawning a fiber directly"
         @busy_fibers[fiber.object_id] = fiber
         fiber[:neverblock] = evented
         fiber.resume(block)
       else
+        NB.logger.error "DJR DJR NB putting new task on @queue"
         @queue << block
       end
       self # we are keen on hiding our queue

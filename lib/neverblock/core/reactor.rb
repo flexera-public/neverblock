@@ -49,7 +49,7 @@ module NeverBlock
 
   def self.yield
     fiber = NB::Fiber.current
-
+    NB.logger.error "DJR DJR NB yielding in reactor"
     NB.logger.warn("NB> NB.yield called within timeout #{NB::Fiber.current[:nb_timeout].inspect}. Backtrace: #{caller.join("\n")}") if NB::Fiber.current[:nb_timeout]
     EM.many_ticks do
       fiber.resume
