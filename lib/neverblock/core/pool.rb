@@ -87,7 +87,7 @@ module NeverBlock
     # If there is an available fiber use it, otherwise, leave it to linger
     # in a queue
     def spawn(evented = true, &block)
-      if fiber = @fibers.shift
+      if false # fiber = @fibers.shift
         NB.logger.error "DJR DJR NB spawning a fiber directly"
         @busy_fibers[fiber.object_id] = fiber
         fiber[:neverblock] = evented
