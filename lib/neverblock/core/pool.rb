@@ -51,14 +51,18 @@ module NeverBlock
               end
             end
             unless @queue.empty?
+              NB.logger.error "DJR DJR NB loop:  queue not empty"
               block = @queue.shift
-
+              NB.logger.error "DJR DJR NB loop:  @busy_fibers.size = #{busy_fibers.size.inspect}, before potential yield"
               # If there are any other fibers working besides me, give them a chance to finish their work.
               NB.yield if @busy_fibers.size > 1
             else
+              NB.logger.error "DJR DJR NB loop:   queue EMPTY"
               @busy_fibers.delete(NB::Fiber.current.object_id)
               @fibers << NB::Fiber.current
+              NB.logger.error "DJR DJR NB loop:   Starting EMPTY loop @busy_fibers.size = #{busy_fibers.size.inspect}"
               @on_empty.shift.call while @on_empty.any? && @busy_fibers.empty?
+              NB.logger.error "DJR DJR NB loop:   @busy_fibers.size = #{busy_fibers.size.inspect}, not EMPTY anymore"
               block = NB::Fiber.yield
             end
           end
