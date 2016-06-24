@@ -58,10 +58,12 @@ class Socket < BasicSocket
   end
     
   def connect(server_sockaddr)
+    NB.logger.error "DJR DJR Socket connect START" rescue nil
 #     if NB.neverblocking?
 #       connect_neverblock(server_sockaddr)
 #     else
     connect_blocking(server_sockaddr)
+    NB.logger.error "DJR DJR Socket connect END" rescue nil
 #     end
   end
 

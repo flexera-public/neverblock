@@ -10,19 +10,21 @@ require 'openssl'
 # DJR 2016-06-15 -> Neverblock can stop openssl from establishing a connection because of a timeout.
 # Turning off neverblock for SSL connect
 
-# class OpenSSL::SSL::SSLSocket
-#   def connect
-#     begin
-#       connect_nonblock
-#     rescue IO::WaitReadable
-#       NB.wait(:read, self)
-#       retry
-#     rescue IO::WaitWritable
-#       NB.wait(:write, self)
-#       retry
-#     end
-#   end
-# end
+class OpenSSL::SSL::SSLSocket
+  def connect
+    NB.logger.error "DJR DJR SSL connect START" rescue nil
+    begin
+      connect_nonblock
+    rescue IO::WaitReadable
+      NB.wait(:read, self)
+      retry
+    rescue IO::WaitWritable
+      NB.wait(:write, self)
+      retry
+    end
+    NB.logger.error "DJR DJR SSL connect STOP" rescue nil
+  end
+end
 
 class IO
 
