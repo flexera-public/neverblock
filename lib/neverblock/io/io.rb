@@ -11,17 +11,19 @@ require 'openssl'
 # Turning off neverblock for SSL connect
 
 class OpenSSL::SSL::SSLSocket
+  alias_method :connect_blocking, :connect
   def connect
     NB.logger.error "DJR DJR SSL connect START" rescue nil
-    begin
-      connect_nonblock
-    rescue IO::WaitReadable
-      NB.wait(:read, self)
-      retry
-    rescue IO::WaitWritable
-      NB.wait(:write, self)
-      retry
-    end
+    # begin
+    #   connect_nonblock
+    # rescue IO::WaitReadable
+    #   NB.wait(:read, self)
+    #   retry
+    # rescue IO::WaitWritable
+    #   NB.wait(:write, self)
+    #   retry
+    # end
+    connect_blocking
     NB.logger.error "DJR DJR SSL connect STOP" rescue nil
   end
 end
