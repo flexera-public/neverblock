@@ -25,10 +25,16 @@ class NeverBlock::Fiber < Fiber
     local_fiber_variables[key] = value
   end
   
+  def self.resume(*args)
+    NB.logger.error "DJR DJR NB resuming fiber"
+    super
+  end
+
   #Sending an exception instance to resume will yield the fiber
   #and then raise the exception. This is necessary to raise exceptions
   #in their correct context.
   def self.yield(*args)
+    NB.logger.error "DJR DJR NB yielding in fiber"
     result = super
     raise result if result.is_a? Exception
     result
