@@ -10,19 +10,29 @@ require 'openssl'
 # DJR 2016-06-15 -> Neverblock can stop openssl from establishing a connection because of a timeout.
 # Turning off neverblock for SSL connect
 
-# class OpenSSL::SSL::SSLSocket
-#   def connect
-#     begin
-#       connect_nonblock
-#     rescue IO::WaitReadable
-#       NB.wait(:read, self)
-#       retry
-#     rescue IO::WaitWritable
-#       NB.wait(:write, self)
-#       retry
-#     end
-#   end
-# end
+class OpenSSL::SSL::SSLSocket
+  alias_method :connect_blocking, :connect
+  def connect
+    # old nonblocking but ssl error causing method
+    # begin
+    #   connect_nonblock
+    # rescue IO::WaitReadable
+    #   NB.wait(:read, self)
+    #   retry
+    # rescue IO::WaitWritable
+    #   NB.wait(:write, self)
+    #   retry
+    # end
+    retries ||= 5
+    connect_blocking
+  rescue Exception => e
+    if e.message =~ /SSL_connect SYSCALL/ && (retries -= 1) >= 0
+      retry
+    else
+      raise
+    end
+  end
+end
 
 class IO
 

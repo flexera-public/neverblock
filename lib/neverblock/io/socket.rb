@@ -40,6 +40,8 @@ class BasicSocket < IO
 
 end
 
+
+# Commenting out connect neverblocking.  This can cause SSL errors
 class Socket < BasicSocket
   
   alias_method :connect_blocking, :connect
@@ -56,11 +58,11 @@ class Socket < BasicSocket
   end
     
   def connect(server_sockaddr)
-    if NB.neverblocking?
-      connect_neverblock(server_sockaddr)
-    else
-      connect_blocking(server_sockaddr)
-    end
+#     if NB.neverblocking?
+#       connect_neverblock(server_sockaddr)
+#     else
+    connect_blocking(server_sockaddr)
+#     end
   end
 
 end
