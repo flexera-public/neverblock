@@ -30,11 +30,7 @@ class OpenSSL::SSL::SSLSocket
     NB.logger.error "DJR DJR SSL connect STOP" rescue nil
   rescue Exception => e
     NB.logger.error "DJR DJR SSL connect ERROR e= #{e.class} -- #{e.message} -- #{e.backtrace.inspect}" rescue nil
-    if e.message =~ /SSL_connect SYSCALL/ && (retries -= 1) >= 0
-      retry
-    else
-      raise
-    end
+    raise
   end
 end
 
