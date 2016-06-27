@@ -14,6 +14,7 @@ class OpenSSL::SSL::SSLSocket
   alias_method :connect_blocking, :connect
   def connect
     NB.logger.error "DJR DJR SSL connect START" rescue nil
+    # old nonblocking but ssl error causing method
     # begin
     #   connect_nonblock
     # rescue IO::WaitReadable
@@ -23,8 +24,17 @@ class OpenSSL::SSL::SSLSocket
     #   NB.wait(:write, self)
     #   retry
     # end
+    
+    retries ||= 5
     connect_blocking
     NB.logger.error "DJR DJR SSL connect STOP" rescue nil
+  rescue Exception => e
+    NB.logger.error "DJR DJR SSL connect ERROR e= #{e.class} -- #{e.message} -- #{e.backtrace.inspect}" rescue nil
+    if e.message =~ /SSL_connect SYSCALL/ && (retries -= 1) >= 0
+      retry
+    else
+      raise
+    end
   end
 end
 
