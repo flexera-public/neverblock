@@ -45,235 +45,214 @@ describe TCPSocket, " without NeverBlock" do
       socket.read(2).should == "hi"
       socket.write "test"
       socket.read(4).should == "test"
-      socket.close
     end
     (Time.now - start).should >=  1
   end
 
   after(:all) do
     @server.stop
-    @socket && @socket.close
   end
 
 end
 
 describe TCPSocket, " with NeverBlock" do
-  context "with no running server" do
-    it "should clean up fd's for failed connections" do
-      before_open_fds = []
-      ObjectSpace.each_object(TCPSocket){ |tcp_socket| before_open_fds << tcp_socket }
 
-      EM.spec {
-        fiber_aid do
-          @socket = TCPSocket.new("0.0.0.0", 8181) rescue nil
-
-          ObjectSpace.each_object(TCPSocket){ |tcp_socket| tcp_socket.closed?.should == true unless before_open_fds.include?(tcp_socket)}
-        end
-      }
-    end
+  before(:all) do
+    @server = TestServer.new :tcp_echo_server
+    sleep 5
+  end
+  before(:each) do
+    @socket = TCPSocket.new "0.0.0.0", 8080
   end
 
-  context "with a running server" do
-    before(:all) do
-      @server = TestServer.new :tcp_echo_server
-      sleep 5
-    end
-    before(:each) do
-      @socket = TCPSocket.new "0.0.0.0", 8080
-    end
+  it "should connect, send, and receive data" do
+    EM.spec {
+      fiber_aid do
+        @socket.read(2).should == "hi"
+        @socket.write "test"
+        @socket.read(4).should == "test"
+      end
+    }
+  end
 
-    it "should connect, send, and receive data" do
-      EM.spec {
+  it "should be mad concurrent" do
+    EM.spec {
+      @socket.read(2).should == "hi"
+
+      start = Time.now
+      10.times do
         fiber_aid do
-          @socket.read(2).should == "hi"
           @socket.write "test"
           @socket.read(4).should == "test"
-        end
-      }
-    end
-
-    it "should be mad concurrent" do
-      EM.spec {
-        @socket.read(2).should == "hi"
-
-        start = Time.now
-        10.times do
-          fiber_aid do
-            @socket.write "test"
-            @socket.read(4).should == "test"
-            (Time.now - start).should <= 0.3
-          end
-        end
-      }
-    end
-
-    context "with a timeout" do
-      context "and timeout == 0" do
-        it "should ignore the timeout" do
-          EM.spec {
-            fiber_aid do
-              lambda do
-                @socket.read(2) # read 'hi' which gets posted by the echo server on startup
-                Timeout.timeout(0) do
-                  @socket.read(2) # read more but now there is nothing to read... so it should timeout
-                end
-              end.should_not raise_error(Timeout::Error)
-            end
-
-            EM.add_timer(0.1){@socket.write("oo")}
-          }
+          (Time.now - start).should <= 0.3
         end
       end
-      context "and timeout expires and there is nothing read" do
-        it "should raise a TimeoutError" do
-          EM.spec {
-            fiber_aid do
-              lambda do
-                @socket.read(2) # read 'hi' which gets posted by the echo server on startup
-                Timeout.timeout(0.1, Timeout::Error) do
-                  @socket.read(2) # read more but now there is nothing to read... so it should timeout
-                end
-              end.should raise_error(Timeout::Error)
-            end
-          }
-        end
-      end
-      context "and timeout expires and @socket is ready for read" do
-        it "should not raise a TimeoutError since the data is read to be read" do
-          EM.spec {
-            fiber_aid do
-              result = Timeout.timeout(0.1, Timeout::Error) do
-                rb_sleep(1)
-                @socket.read(2) # read more but now there is nothing to read... so it should timeout
-              end
-              result.should == "hi"
-            end
-          }
-        end
-      end
-      context "and timeout does not expire and @socket is ready for read" do
-        it "should not raise a TimeoutError since the data is read to be read" do
-          EM.spec {
-            fiber_aid do
-              result = Timeout.timeout(10, Timeout::Error) do
-                @socket.read(2) # read more but now there is nothing to read... so it should timeout
-              end
-              result.should == "hi"
-            end
-          }
-        end
-      end
+    }
+  end
 
-      context "and nested timeouts with t1=0.1 and t2=5" do
-        it "should not raise a TimeoutError if the data is read with t < 5" do
-          EM.spec {
-            @socket.read(2)
-            fiber_aid do
-              result = Timeout.timeout(0.1, Timeout::Error) do
-                result = Timeout.timeout(5, Timeout::Error) do
-                  @socket.read(2) # read more but now there is nothing to read... so it should timeout
-                end
-              end
-              result.should == "h2"
-            end
-
-            NB::Fiber.new do
-              rb_sleep(0.2)
-              @socket.write("h2")
-            end.resume
-          }
-        end
-      end
-      context "and nested timeouts with t1=5 and t2=0.01" do
-        it "should raise a TimeoutError since the data is not read with t < 0.01" do
-          EM.spec do
-            @socket.read(2)
-
-            fiber_aid do
-              lambda do
-                Timeout.timeout(5) do
-                  result = Timeout.timeout(0.01) do
-                    result = @socket.read(2) # read more but now there is nothing to read... so it should timeout
-                  end
-                end
-              end.should raise_error(Timeout::Error)
-            end
-            NB::Fiber.new do
-              sleep(0.5)
-              @socket.write("h2")
-            end.resume
-          end
-        end
-      end
-      context "and a single timeouts with two @socket.read calls" do
-        it "should apply the timeout length for each @socket.read" do
-          EM.spec {
-            @socket.read(2)
-
-            fiber_aid do
-              result = Timeout.timeout(0.6, Timeout::Error) do
-                @socket.read(2) + @socket.read(2)
-              end
-              result.should == "h2h3"
-            end
-
-            NB::Fiber.new do
-              sleep(0.4)
-              @socket.write("h2")
-              sleep(0.4)
-              @socket.write("h3")
-            end.resume
-          }
-        end
-      end
-      context "and a timeout for non-io" do
-        it "should not apply the timeout and raise no Timeout::Error" do
-          EM.spec {
-            fiber_aid do
-              lambda do
-                Timeout.timeout(0.1, Timeout::Error) do
-                  sleep(0.5)
-                end
-              end.should_not raise_error(Timeout::Error)
-            end
-          }
-        end
-      end
-    end
-
-    context "with a Fiber retrying before the unbind for the same fd gets triggered" do
-      it "should have a handler available" do
+  context "with a timeout" do
+    context "and timeout == 0" do
+      it "should ignore the timeout" do
         EM.spec {
-          @socket.read(2)
-
-          EM.add_timer(0.5) do
-            NB.send(:class_variable_get, :@@handlers).size.should == 1
-            @socket.write(":)")
+          fiber_aid do
+            lambda do
+              @socket.read(2) # read 'hi' which gets posted by the echo server on startup
+              Timeout.timeout(0) do
+                @socket.read(2) # read more but now there is nothing to read... so it should timeout
+              end
+            end.should_not raise_error(Timeout::Error)
           end
 
-          NB::Fiber.new do
-            begin
-              Timeout.timeout(0.1) do
-                @socket.read(2)
+          EM.add_timer(0.1){@socket.write("oo")}
+        }
+      end
+    end
+    context "and timeout expires and there is nothing read" do
+      it "should raise a TimeoutError" do
+        EM.spec {
+          fiber_aid do
+            lambda do
+              @socket.read(2) # read 'hi' which gets posted by the echo server on startup
+              Timeout.timeout(0.1, Timeout::Error) do
+                @socket.read(2) # read more but now there is nothing to read... so it should timeout
               end
-            rescue => e
+            end.should raise_error(Timeout::Error)
+          end
+        }
+      end
+    end
+    context "and timeout expires and @socket is ready for read" do
+      it "should not raise a TimeoutError since the data is read to be read" do
+        EM.spec {
+          fiber_aid do
+            result = Timeout.timeout(0.1, Timeout::Error) do
+              rb_sleep(1)
+              @socket.read(2) # read more but now there is nothing to read... so it should timeout
             end
-
-            #Try again to read
-            @socket.read(2)
-
-            EM.stop
-          end.resume
+            result.should == "hi"
+          end
+        }
+      end
+    end
+    context "and timeout does not expire and @socket is ready for read" do
+      it "should not raise a TimeoutError since the data is read to be read" do
+        EM.spec {
+          fiber_aid do
+            result = Timeout.timeout(10, Timeout::Error) do
+              @socket.read(2) # read more but now there is nothing to read... so it should timeout
+            end
+            result.should == "hi"
+          end
         }
       end
     end
 
-    after(:all) do
-      @server.stop
+    context "and nested timeouts with t1=0.1 and t2=5" do
+      it "should not raise a TimeoutError if the data is read with t < 5" do
+        EM.spec {
+          @socket.read(2)
+          fiber_aid do
+            result = Timeout.timeout(0.1, Timeout::Error) do
+              result = Timeout.timeout(5, Timeout::Error) do
+                @socket.read(2) # read more but now there is nothing to read... so it should timeout
+              end
+            end
+            result.should == "h2"
+          end
+
+          NB::Fiber.new do
+            rb_sleep(0.2)
+            @socket.write("h2")
+          end.resume
+        }
+      end
     end
-    after(:each) do
-      @socket && @socket.close
+    context "and nested timeouts with t1=5 and t2=0.01" do
+      it "should raise a TimeoutError since the data is not read with t < 0.01" do
+        EM.spec do
+          @socket.read(2)
+
+          fiber_aid do
+            lambda do
+              Timeout.timeout(5) do
+                result = Timeout.timeout(0.01) do
+                  result = @socket.read(2) # read more but now there is nothing to read... so it should timeout
+                end
+              end
+            end.should raise_error(Timeout::Error)
+          end
+          NB::Fiber.new do
+            sleep(0.5)
+            @socket.write("h2")
+          end.resume
+        end
+      end
     end
+    context "and a single timeouts with two @socket.read calls" do
+      it "should apply the timeout length for each @socket.read" do
+        EM.spec {
+          @socket.read(2)
+
+          fiber_aid do
+            result = Timeout.timeout(0.6, Timeout::Error) do
+              @socket.read(2) + @socket.read(2)
+            end
+            result.should == "h2h3"
+          end
+
+          NB::Fiber.new do
+            sleep(0.4)
+            @socket.write("h2")
+            sleep(0.4)
+            @socket.write("h3")
+          end.resume
+        }
+      end
+    end
+    context "and a timeout for non-io" do
+      it "should not apply the timeout and raise no Timeout::Error" do
+        EM.spec {
+          fiber_aid do
+            lambda do
+              Timeout.timeout(0.1, Timeout::Error) do
+                sleep(0.5)
+              end
+            end.should_not raise_error(Timeout::Error)
+          end
+        }
+      end
+    end
+  end
+
+  context "with a Fiber retrying before the unbind for the same fd gets triggered" do
+    it "should have a handler available" do
+      EM.spec {
+        @socket.read(2)
+
+        EM.add_timer(0.5) do
+          NB.send(:class_variable_get, :@@handlers).size.should == 1
+          @socket.write(":)")
+        end
+
+        NB::Fiber.new do
+          begin
+            Timeout.timeout(0.1) do
+              @socket.read(2)
+            end
+          rescue => e
+          end
+
+          #Try again to read
+          @socket.read(2)
+
+          EM.stop
+        end.resume
+      }
+    end
+  end
+
+  after(:all) do
+    @server.stop
   end
   
 end
