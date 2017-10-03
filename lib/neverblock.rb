@@ -1,3 +1,5 @@
+require 'net/http'
+
 # Author::    Mohammad A. Ali  (mailto:oldmoe@gmail.com)
 # Copyright:: Copyright (c) 2008 eSpace, Inc.
 # License::   Distributes under the same terms as Ruby
@@ -21,7 +23,7 @@ module NeverBlock
   # mode based on the first parameter
   def self.neverblock(nb = true, &block)
     status = NB::Fiber.current[:neverblock]
-    NB::Fiber.current[:neverblock] = nb
+    NB::Fiber.current[:neverblock] = !!nb
     block.call
     NB::Fiber.current[:neverblock] = status
   end
