@@ -23,9 +23,9 @@ module NeverBlock
   # mode based on the first parameter
   def self.neverblock(nb = true, &block)
     status = NB::Fiber.neverblock
-    NB::Fiber.neverblock = !!nb
+    NB::Fiber.current.neverblock = !!nb
     block.call
-    NB::Fiber.neverblock = status
+    NB::Fiber.current.neverblock = status
   end
 
   # Exception to be thrown for all neverblock internal errors
