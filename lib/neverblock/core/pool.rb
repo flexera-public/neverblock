@@ -86,6 +86,7 @@ module NeverBlock
       if fiber = @fibers.shift
         @busy_fibers[fiber.object_id] = fiber
         fiber.neverblock = evented
+        fiber.lock_count = 0
         fiber.resume(block)
       else
         @queue << block
