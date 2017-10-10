@@ -19,7 +19,7 @@ describe NeverBlock::Fiber do
       results.should == [true, false, true]
     end
 
-    it "handles multiple mutexes" do
+    it "handles multiple synchronizes" do
       results = []
       @mutex2 = Mutex.new
       EM.run do
@@ -38,6 +38,31 @@ describe NeverBlock::Fiber do
         fiber_pool.spawn { EM.stop }
       end
       results.should == [true, false, false, false, true]
+    end
+
+    it "handles interwoven locks" do
+      results = []
+      @mutex2 = Mutex.new
+      @mutex3 = Mutex.new
+      EM.run do
+        fiber_pool = NB::FiberPool.new(1)
+        fiber_pool.spawn do
+          # first result is true -- all the rest are false till everything unlocks at the end
+          results << NB.neverblocking?
+          @mutex.lock
+          results << NB.neverblocking?
+          @mutex2.lock
+          results << NB.neverblocking?
+          @mutex3.synchronize { results << NB.neverblocking? }
+          @mutex.unlock
+          results << NB.neverblocking?
+          @mutex3.synchronize { results << NB.neverblocking? }
+          @mutex2.unlock
+          results << NB.neverblocking? # expects true
+        end
+        fiber_pool.spawn { EM.stop }
+      end
+      results.should == [true, false, false, false, false, false, true]
     end
 
     it "recovers from errors in synchronize" do

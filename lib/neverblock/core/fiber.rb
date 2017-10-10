@@ -6,9 +6,11 @@ require 'fiber'
 require 'thread'
 
 class NeverBlock::Fiber < Fiber
+  attr_accessor :lock_count
 
   def initialize(neverblock = true, &block)
     self[:neverblock] = neverblock
+    @lock_count = 0
     super()
   end
 
@@ -104,19 +106,26 @@ class Mutex
   # lead to "recursive lock" errors as the two fibers can call lock/synchronize twice in the same
   # thread. See CF-2601 for reference.
   def disable_neverblock
-    if NB::Fiber.respond_to?(:current) && NB::Fiber.current.respond_to?('[]') && !instance_variable_defined?(:@neverblock_save)
-      @neverblock_save = NB::Fiber.current[:neverblock]
-      NB::Fiber.current[:neverblock] = false
-      #_dbg('NEVERBLOCK DISABLED') if @neverblock_save
+    if NB::Fiber.respond_to?(:current) && NB::Fiber.current.respond_to?('[]')
+      current_fiber = NB::Fiber.current
+      if current_fiber.lock_count == 0
+        current_fiber[:neverblock_save] = current_fiber[:neverblock]
+        current_fiber[:neverblock] = false
+        #_dbg('NEVERBLOCK DISABLED') if current_fiber[:neverblock_save]
+      end
+      current_fiber.lock_count += 1
     end
   end
 
   # restore_neverblock undoes disable_neverblock
   def restore_neverblock
-    if NB::Fiber.respond_to?(:current) && NB::Fiber.current.respond_to?('[]') && instance_variable_defined?(:@neverblock_save)
-      NB::Fiber.current[:neverblock] = @neverblock_save
-      remove_instance_variable(:@neverblock_save)
-      #_dbg('NEVERBLOCK RESTORED') if NB::Fiber.current[:neverblock]
+    if NB::Fiber.respond_to?(:current) && NB::Fiber.current.respond_to?('[]')
+      current_fiber = NB::Fiber.current
+      current_fiber.lock_count -= 1
+      if current_fiber.lock_count == 0
+        current_fiber[:neverblock] = current_fiber[:neverblock_save]
+        #_dbg('NEVERBLOCK RESTORED') if current_fiber[:neverblock]
+      end
     end
   end
 end
