@@ -22,7 +22,7 @@ module NeverBlock
   # The given block will run its queries either in blocking or non-blocking
   # mode based on the first parameter
   def self.neverblock(nb = true, &block)
-    status = NB::Fiber.neverblock
+    status = NB::Fiber.current.neverblock
     NB::Fiber.current.neverblock = !!nb
     block.call
     NB::Fiber.current.neverblock = status
