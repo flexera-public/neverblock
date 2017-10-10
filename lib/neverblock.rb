@@ -16,16 +16,16 @@ module NeverBlock
 
   # Checks if we should be working in a non-blocking mode
   def self.neverblocking?
-    NB::Fiber.respond_to?(:current) && NB::Fiber.current.respond_to?('[]') && NB::Fiber.current[:neverblock] && NB.reactor.reactor_running?
+    NB::Fiber.current.respond_to?(:neverblock) && NB::Fiber.current.neverblock && NB.reactor.reactor_running?
   end
 
   # The given block will run its queries either in blocking or non-blocking
   # mode based on the first parameter
   def self.neverblock(nb = true, &block)
-    status = NB::Fiber.current[:neverblock]
-    NB::Fiber.current[:neverblock] = !!nb
+    status = NB::Fiber.neverblock
+    NB::Fiber.neverblock = !!nb
     block.call
-    NB::Fiber.current[:neverblock] = status
+    NB::Fiber.neverblock = status
   end
 
   # Exception to be thrown for all neverblock internal errors

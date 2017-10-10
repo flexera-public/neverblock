@@ -10,8 +10,8 @@ describe NeverBlock::FiberPool do
     @fiber_pool.instance_variable_get(:@queue).length.should == 0
   end
 
-  it "should have fibers with :neverblock fiber variable set to true" do
-    @fiber_pool.fibers.each {|f| f[:neverblock].should == true}
+  it "should have fibers with @neverblock instance variable set to true" do
+    @fiber_pool.fibers.each {|f| f.neverblock.should == true}
   end
 
   it "should process a new block if there are available fibers" do

@@ -6,10 +6,11 @@ require 'fiber'
 require 'thread'
 
 class NeverBlock::Fiber < Fiber
-  attr_accessor :lock_count
+  attr_accessor :lock_count, :neverblock
 
   def initialize(neverblock = true, &block)
-    self[:neverblock] = neverblock
+    @local_fiber_variables = {}
+    @neverblock = neverblock
     @lock_count = 0
     super()
   end
@@ -18,13 +19,17 @@ class NeverBlock::Fiber < Fiber
   #either a symbol or a string name. If the specified variable does not exist,
   #returns nil.
   def [](key)
-    local_fiber_variables[key]
+    @local_fiber_variables[key]
   end
   
   #Attribute Assignment--Sets or creates the value of a fiber-local variable,
   #using either a symbol or a string. See also Fiber#[].
   def []=(key,value)
-    local_fiber_variables[key] = value
+    @local_fiber_variables[key] = value
+  end
+
+  def delete(key)
+    @local_fiber_variables.delete(key)
   end
 
   #Sending an exception instance to resume will yield the fiber
@@ -35,13 +40,6 @@ class NeverBlock::Fiber < Fiber
     raise result if result.is_a? Exception
     result
   end
-
-  private
-
-  def local_fiber_variables
-    @local_fiber_variables ||= {}
-  end
-
 end
 
 # Code that is designed to work with mutexes and threads but isn't aware of fibers
@@ -106,11 +104,11 @@ class Mutex
   # lead to "recursive lock" errors as the two fibers can call lock/synchronize twice in the same
   # thread. See CF-2601 for reference.
   def disable_neverblock
-    if NB::Fiber.respond_to?(:current) && NB::Fiber.current.respond_to?('[]')
+    if NB::Fiber.current.respond_to?(:neverblock)
       current_fiber = NB::Fiber.current
       if current_fiber.lock_count == 0
-        current_fiber[:neverblock_save] = current_fiber[:neverblock]
-        current_fiber[:neverblock] = false
+        current_fiber[:neverblock_save] = current_fiber.neverblock
+        current_fiber.neverblock = false
         #_dbg('NEVERBLOCK DISABLED') if current_fiber[:neverblock_save]
       end
       current_fiber.lock_count += 1
@@ -119,12 +117,12 @@ class Mutex
 
   # restore_neverblock undoes disable_neverblock
   def restore_neverblock
-    if NB::Fiber.respond_to?(:current) && NB::Fiber.current.respond_to?('[]')
+    if NB::Fiber.current.respond_to?(:neverblock)
       current_fiber = NB::Fiber.current
       current_fiber.lock_count -= 1
       if current_fiber.lock_count == 0
-        current_fiber[:neverblock] = current_fiber[:neverblock_save]
-        #_dbg('NEVERBLOCK RESTORED') if current_fiber[:neverblock]
+        current_fiber.neverblock = current_fiber.delete(:neverblock_save)
+        #_dbg('NEVERBLOCK RESTORED') if current_fiber.neverblock
       end
     end
   end
