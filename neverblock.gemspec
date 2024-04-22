@@ -1,5 +1,3 @@
-require 'rake'
-
 Gem::Specification.new do |s|
   s.name     = "neverblock"
   s.version  = "2.2"
@@ -10,7 +8,7 @@ Gem::Specification.new do |s|
   s.description = "NeverBlock is a collection of classes and modules that help you write evented non-blocking applications in a seemingly blocking mannner."
   s.has_rdoc = true
   s.authors  = ["Muhammad A. Ali", "Ahmed Sobhi", "Osama Brekaa"]
-  s.files    = FileList[
+  s.files    = [
 		"neverblock.gemspec",
 		"README",
     "lib/**/*.rb"
