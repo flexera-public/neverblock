@@ -153,6 +153,14 @@ class IO
   end
 
   def gets(sep = $/, _options = {})
+    puts 'NEVERBLOCK gets'
+
+    logger = Logger.new(STDOUT)
+    logger.level = Logger::WARN
+    logger.info('ARGS TO GETS METHOD')
+    logger.info(sep)
+    logger.info(options)
+
     return rb_gets(sep) if file?
 
     res = ''
