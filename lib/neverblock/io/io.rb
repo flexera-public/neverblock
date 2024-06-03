@@ -56,6 +56,12 @@ class IO
   #  Otherwise it uses the original ruby read method.
 
   def sysread(length)
+    puts 'NEVERBLOCK gets'
+
+    logger = Logger.new(STDOUT)
+    logger.level = Logger::WARN
+    logger.info('SYSREAD BLOCK')
+    logger.info(length)
     neverblock? ? read_neverblock(length) : rb_sysread(length)
   end
 
