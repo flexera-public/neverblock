@@ -159,7 +159,7 @@ class IO
     logger.level = Logger::WARN
     logger.info('ARGS TO GETS METHOD')
     logger.info(sep)
-    logger.info(options)
+    logger.info(_options)
 
     return rb_gets(sep) if file?
 
