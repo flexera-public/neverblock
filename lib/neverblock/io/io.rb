@@ -57,7 +57,7 @@ class IO
 
   def sysread(length)
     Merb.logger.info('NEVERBLOCK sysread')
-    Merb.logger.info(sep)
+    Merb.logger.info(length)
 
     neverblock? ? read_neverblock(length) : rb_sysread(length)
   rescue StandardError => e
@@ -159,11 +159,10 @@ class IO
     syswrite(data)
   end
 
-  def gets(sep = $/, _options = {})
+  def gets(sep = $/)
     Merb.logger.info('NEVERBLOCK gets')
     Merb.logger.info('ARGS TO GETS METHOD')
     Merb.logger.info(sep)
-    Merb.logger.info(_options)
 
     return rb_gets(sep) if file?
 
