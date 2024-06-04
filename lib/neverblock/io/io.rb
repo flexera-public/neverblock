@@ -158,13 +158,11 @@ class IO
     syswrite(data)
   end
 
-  def gets(sep = $/)
-    puts 'NEVERBLOCK gets'
-
-    logger = Logger.new(STDOUT)
-    logger.level = Logger::WARN
-    logger.info('ARGS TO GETS METHOD')
-    logger.info(sep)
+  def gets(sep = $/, _options = {})
+    Merb.logger.info('NEVERBLOCK gets')
+    Merb.logger.info('ARGS TO GETS METHOD')
+    Merb.logger.info(sep)
+    Merb.logger.info(_options)
 
     return rb_gets(sep) if file?
 
