@@ -159,18 +159,20 @@ class IO
     syswrite(data)
   end
 
-  def gets(sep = $/)
+  def gets(*args)
     Merb.logger.info('NEVERBLOCK gets')
     Merb.logger.info('ARGS TO GETS METHOD')
-    Merb.logger.info(sep)
+    Merb.logger.info(args)
 
-    return rb_gets(sep) if file?
+    sep = args[0] || $/
+
+    return rb_gets(sep) if @io.respond_to?(:file?) && @io.file?
 
     res = ''
     sep = "\n\n" if sep == ''
     sep = $/ if sep.nil?
     while res.index(sep).nil?
-      break if (c = read(1)).nil?
+      break if (c = @io.read(1)).nil?
 
       res << c
     end
