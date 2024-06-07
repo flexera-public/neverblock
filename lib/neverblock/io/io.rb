@@ -56,14 +56,7 @@ class IO
   #  Otherwise it uses the original ruby read method.
 
   def sysread(length)
-    Merb.logger.info('NEVERBLOCK sysread')
-    Merb.logger.info(length)
-
     neverblock? ? read_neverblock(length) : rb_sysread(length)
-  rescue StandardError => e
-    Merb.logger.info('NEVERBLOCK sysread')
-    Merb.logger.info(e)
-    Merb.logger.info(e.backtrace)
   end
 
   def read(length = nil, sbuffer = nil)
@@ -160,10 +153,6 @@ class IO
   end
 
   def gets(*args)
-    Merb.logger.info('NEVERBLOCK gets')
-    Merb.logger.info('ARGS TO GETS METHOD')
-    Merb.logger.info(args)
-
     sep = args[0] || $/
 
     return rb_gets(sep) if @io.respond_to?(:file?) && @io.file?
@@ -214,10 +203,6 @@ class IO
 
   def readline(sep = $/)
     return rb_readline(sep) if file?
-
-    Merb.logger.info('NEVERBLOCK readline')
-    Merb.logger.info('ARGS TO readline METHOD')
-    Merb.logger.info(sep)
 
     res = gets(sep)
     raise EOFError if res.nil?
