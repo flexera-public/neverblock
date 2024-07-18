@@ -171,16 +171,19 @@ class IO
   #   res
   # end
 
-  def gets(sep=$/)
-    return rb_gets(sep) if self.file?
-    res = ""
-    sep = "\n\n" if sep == ""
+  def gets(sep = $/, *_args)
+    return rb_gets(sep) if file?
+
+    res = ''
+    sep = "\n\n" if sep == ''
     sep = $/ if sep.nil?
     while res.index(sep).nil?
       break if (c = read(1)).nil?
+
       res << c
     end
     return nil if res.empty?
+
     $_ = res
     res
   end
