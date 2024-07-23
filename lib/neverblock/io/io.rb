@@ -152,15 +152,15 @@ class IO
     syswrite(data)
   end
 
-  def gets(sep = $/, *args)
-    if args.nil?
+  def gets(sep = $/, *_args)
+    if _args.blank?
       original_gets(sep)
     else
-      newer_gets(sep, *args)
+      newer_gets(sep, *_args)
     end
   end
 
-  def newer_gets(*args)
+  def newer_gets(sep, *args)
     sep = args[0] || $/
 
     return rb_gets(sep) if @io.respond_to?(:file?) && @io.file?
