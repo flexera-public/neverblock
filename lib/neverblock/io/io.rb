@@ -152,7 +152,15 @@ class IO
     syswrite(data)
   end
 
-  def gets(*args)
+  def gets(sep = $/, *args)
+    if args.nil?
+      original_gets(sep)
+    else
+      newer_gets(sep, *args)
+    end
+  end
+
+  def newer_gets(*args)
     sep = args[0] || $/
 
     return rb_gets(sep) if @io.respond_to?(:file?) && @io.file?
@@ -171,22 +179,22 @@ class IO
     res
   end
 
-  # def gets(sep = $/)
-  #   return rb_gets(sep) if file?
+  def original_gets(sep = $/)
+    return rb_gets(sep) if file?
 
-  #   res = ''
-  #   sep = "\n\n" if sep == ''
-  #   sep = $/ if sep.nil?
-  #   while res.index(sep).nil?
-  #     break if (c = read(1)).nil?
+    res = ''
+    sep = "\n\n" if sep == ''
+    sep = $/ if sep.nil?
+    while res.index(sep).nil?
+      break if (c = read(1)).nil?
 
-  #     res << c
-  #   end
-  #   return nil if res.empty?
+      res << c
+    end
+    return nil if res.empty?
 
-  #   $_ = res
-  #   res
-  # end
+    $_ = res
+    res
+  end
 
   def readlines(sep = $/)
     return rb_readlines(sep) if file?
