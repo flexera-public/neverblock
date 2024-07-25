@@ -152,34 +152,36 @@ class IO
     syswrite(data)
   end
 
+  # def gets(sep = $/, *_args)
+  #   if _args.blank?
+  #     original_gets(sep)
+  #   else
+  #     newer_gets(sep, *_args)
+  #   end
+  # end
+
+  # def newer_gets(sep, *args)
+  #   sep = args[0] || $/
+
+  #   return rb_gets(sep) if @io.respond_to?(:file?) && @io.file?
+
+  #   res = ''
+  #   sep = "\n\n" if sep == ''
+  #   sep = $/ if sep.nil?
+  #   while res.index(sep).nil?
+  #     break if (c = @io&.read(1)).nil?
+
+  #     res << c
+  #   end
+  #   return nil if res.empty?
+
+  #   $_ = res
+  #   res
+  # end
+
   def gets(sep = $/, *_args)
-    if _args.blank?
-      original_gets(sep)
-    else
-      newer_gets(sep, *_args)
-    end
-  end
+    Merb.logger("Neverblock *_args: #{_args}") unless _args.blank?
 
-  def newer_gets(sep, *args)
-    sep = args[0] || $/
-
-    return rb_gets(sep) if @io.respond_to?(:file?) && @io.file?
-
-    res = ''
-    sep = "\n\n" if sep == ''
-    sep = $/ if sep.nil?
-    while res.index(sep).nil?
-      break if (c = @io&.read(1)).nil?
-
-      res << c
-    end
-    return nil if res.empty?
-
-    $_ = res
-    res
-  end
-
-  def original_gets(sep = $/)
     return rb_gets(sep) if file?
 
     res = ''
