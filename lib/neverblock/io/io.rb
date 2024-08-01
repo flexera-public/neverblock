@@ -156,11 +156,11 @@ class IO
   #   if _args.blank?
   #     original_gets(sep)
   #   else
-  #     newer_gets(sep, *_args)
+  #     custom_gets(sep, *_args)
   #   end
   # end
 
-  # def newer_gets(sep, *args)
+  # def custom_gets(sep, *args)
   #   sep = args[0] || $/
 
   #   return rb_gets(sep) if @io.respond_to?(:file?) && @io.file?
@@ -180,8 +180,6 @@ class IO
   # end
 
   def gets(sep = $/, *_args)
-    Merb.logger("Neverblock *_args: #{_args}") unless _args.blank?
-
     return rb_gets(sep) if file?
 
     res = ''
@@ -196,6 +194,9 @@ class IO
 
     $_ = res
     res
+  rescue StandardError => e
+    Merb.logger.error "Error from Neverblock: #{e.class} -- #{e.message}"
+    Merb.logger.error "Error from Neverblock args: #{sep} -- #{_args}"
   end
 
   def readlines(sep = $/)
