@@ -180,7 +180,8 @@ class IO
   # end
 
   def gets(sep = $/, *_args)
-    return rb_gets(sep, _args) if file? || _args.any?
+    return rb_gets(sep, _args)
+    # return rb_gets(sep) if file?
 
     res = ''
     sep = "\n\n" if sep == ''
