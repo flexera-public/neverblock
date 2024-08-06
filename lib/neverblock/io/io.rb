@@ -179,9 +179,9 @@ class IO
   #   res
   # end
 
+  # added *_args to prevent the attributes received issue.
   def gets(sep = $/, *_args)
-    return rb_gets(sep, _args)
-    # return rb_gets(sep) if file?
+    return rb_gets(sep) if file?
 
     res = ''
     sep = "\n\n" if sep == ''
