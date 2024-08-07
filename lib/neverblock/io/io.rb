@@ -180,21 +180,8 @@ class IO
   # end
 
   # added *_args to prevent the attributes received issue.
-  def gets(sep = $/, *_args)
-    return rb_gets(sep) if file?
-
-    res = ''
-    sep = "\n\n" if sep == ''
-    sep = $/ if sep.nil?
-    while res.index(sep).nil?
-      break if (c = read(1)).nil?
-
-      res << c
-    end
-    return nil if res.empty?
-
-    $_ = res
-    res
+  def gets(*_args)
+    rb_gets(*_args)
   rescue StandardError => e
     Merb.logger.error "Error from Neverblock: #{e.class} -- #{e.message}"
     Merb.logger.error "Error from Neverblock args: #{sep} -- #{_args}"
