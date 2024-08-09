@@ -152,39 +152,9 @@ class IO
     syswrite(data)
   end
 
-  # def gets(sep = $/, *_args)
-  #   if _args.blank?
-  #     original_gets(sep)
-  #   else
-  #     custom_gets(sep, *_args)
-  #   end
-  # end
-
-  # def custom_gets(sep, *args)
-  #   sep = args[0] || $/
-
-  #   return rb_gets(sep) if @io.respond_to?(:file?) && @io.file?
-
-  #   res = ''
-  #   sep = "\n\n" if sep == ''
-  #   sep = $/ if sep.nil?
-  #   while res.index(sep).nil?
-  #     break if (c = @io&.read(1)).nil?
-
-  #     res << c
-  #   end
-  #   return nil if res.empty?
-
-  #   $_ = res
-  #   res
-  # end
-
   # added *_args to prevent the attributes received issue.
   def gets(*_args)
     rb_gets(*_args)
-  rescue StandardError => e
-    Merb.logger.error "Error from Neverblock: #{e.class} -- #{e.message}"
-    Merb.logger.error "Error from Neverblock args: #{sep} -- #{_args}"
   end
 
   def readlines(sep = $/)
